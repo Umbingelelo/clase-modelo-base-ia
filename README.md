@@ -21,6 +21,14 @@ Sin construir nada (la imagen que publicó el pipeline en GHCR):
 docker compose -f compose.ghcr.yaml up -d
 ```
 
+Set de pruebas desde la terminal (sin Postman, sin instalar nada: solo Python):
+
+```powershell
+python pruebas/probar_api.py            # 20 pruebas: operación, casos conocidos, contrato (422), carga y lote
+```
+
+Deja el resultado en `pruebas/reporte_pruebas.md`.
+
 Para apagar: `docker compose down`.
 
 ---
@@ -95,6 +103,7 @@ clase-modelo-base-ia/
 │   ├── requirements-tensorflow.txt    ← dependencias para ENTRENAR con TensorFlow (no van en la imagen)
 │   ├── Dockerfile
 │   └── .dockerignore
+├── pruebas/probar_api.py              ← set de pruebas contra la API corriendo (alternativa a Postman)
 └── postman/servicio-ia.postman_collection.json
 ```
 

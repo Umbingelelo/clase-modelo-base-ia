@@ -21,3 +21,6 @@ docente/
 
 # Archivos para borrar a mano
 _to_delete/
+
+# Reporte que genera pruebas/probar_api.py
+pruebas/reporte_pruebas.md
