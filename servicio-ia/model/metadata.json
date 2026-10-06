@@ -1,10 +1,10 @@
 {
   "nombre": "falla-caex-7d",
-  "version": "1.0.0-pytorch",
+  "version": "1.0.1-pytorch",
   "formato": "onnx",
-  "framework": "torch 2.14.1+cu130",
+  "framework": "torch 2.14.1+cpu",
   "descripcion": "MLP [64, 32] dropout=0.2 epocas=60 lr=0.001",
-  "entrenado_en": "2026-10-06T04:45:32+00:00",
+  "entrenado_en": "2026-10-06T05:58:23+00:00",
   "sklearn_version": "1.9.1",
   "variables_numericas": [
     "antiguedad_anios",
