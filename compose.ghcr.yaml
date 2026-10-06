@@ -1,0 +1,13 @@
+# Levantar la imagen que publicó el pipeline en GHCR, sin construir nada (así es la defensa de la EP2):
+#
+#   docker compose -f compose.ghcr.yaml pull
+#   docker compose -f compose.ghcr.yaml up -d
+services:
+  servicio-ia:
+    image: ghcr.io/umbingelelo/servicio-ia-caex:latest
+    container_name: servicio-ia
+    ports:
+      - "8000:8000"
+    cpus: "0.50"
+    mem_limit: 512m
+    restart: unless-stopped

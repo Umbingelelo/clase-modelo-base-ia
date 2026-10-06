@@ -1,0 +1,14 @@
+# Lo que NO entra a la imagen (mas liviana, sin basura, sin secretos)
+__pycache__/
+*.pyc
+.pytest_cache/
+tests/
+entrenar.py
+requirements-dev.txt
+.venv/
+venv/
+.env
+.git/
+*.ipynb
+requirements-pytorch.txt
+requirements-tensorflow.txt

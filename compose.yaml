@@ -1,0 +1,22 @@
+# Levantar el microservicio de IA desde el código de este repositorio:
+#
+#   docker compose up -d --build
+#   docker compose ps                 -> espera a ver (healthy)
+#   http://localhost:8000/docs        -> Swagger
+#   Postman: postman/servicio-ia.postman_collection.json (baseUrl = http://localhost:8000)
+#
+# En la EP2 el compose.yaml de la defensa NO lleva "build:" ni "ports:" en este servicio
+# (descarga la imagen de GHCR y solo el gateway publica el 8080). Ver compose.ghcr.yaml.
+services:
+  servicio-ia:
+    build:
+      context: ./servicio-ia
+      args:
+        REVISION: local
+    image: servicio-ia-caex:local
+    container_name: servicio-ia
+    ports:
+      - "8000:8000"
+    cpus: "0.50"
+    mem_limit: 512m        # EJEMPLO: mide el tuyo con "docker stats servicio-ia" mientras corre la carga de Postman
+    restart: unless-stopped

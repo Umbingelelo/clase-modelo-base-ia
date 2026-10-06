@@ -1,0 +1,6 @@
+# ENTRENAMIENTO con TensorFlow / Keras (tu computador o el job de CI). No va en la imagen.
+# tensorflow-cpu evita las librerias de GPU. tf2onnx lo usa keras para exportar a ONNX.
+-r requirements-dev.txt
+tensorflow-cpu==2.21.0
+tf2onnx==1.17.0
+onnx==1.23.1

@@ -1,0 +1,4 @@
+# Para correr los tests (pipeline de CI) y desarrollar en local. NO va en la imagen.
+-r requirements.txt
+pytest==8.4.2
+httpx==0.28.1

@@ -1,0 +1,126 @@
+# Pipeline del microservicio de IA (patrón EP2, sección 2.5)
+#
+#  pull request a dev o main -> datos + entrenamiento + quality gate + tests + build + prueba de humo (NO publica)
+#  push a main               -> lo mismo, publica en GHCR con tags sha-<commit> y latest, y guarda en el
+#                               repositorio el modelo y los datos que produjo (commit del bot con [skip ci]),
+#                               para que el repo se pueda clonar y levantar con docker compose
+#  tag (ep2, v1.0, ...)      -> lo mismo y publica con el nombre del tag
+#
+# PyTorch se instala SOLO en este job (versión CPU). La imagen no lo lleva: sirve con onnxruntime.
+
+name: servicio-ia
+
+on:
+  pull_request:
+    branches: [dev, main]
+  push:
+    branches: [main]
+    tags: ["ep2", "v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write     # para que el bot guarde el modelo entrenado en main
+  packages: write     # para publicar la imagen en GHCR
+
+jobs:
+  entrenar-probar-publicar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Dependencias de entrenamiento (PyTorch solo CPU, sin CUDA)
+        run: |
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -r servicio-ia/requirements-pytorch.txt
+
+      - name: Datos · generar, perfilar y limpiar
+        run: |
+          python datos/generar_datos.py
+          python datos/preparar.py
+
+      - name: Entrenar + verificar ONNX + quality gate
+        run: |
+          python servicio-ia/entrenar.py --framework pytorch --pr-auc-minimo 0.55 \
+            --version "1.0.${{ github.run_number }}-pytorch"
+
+      - name: Tests del servicio
+        working-directory: servicio-ia
+        run: pytest -q
+
+      - name: Nombre de la imagen (GHCR exige minúsculas)
+        run: echo "IMAGEN=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/servicio-ia-caex" >> "$GITHUB_ENV"
+
+      - name: Tags y etiquetas (incluye org.opencontainers.image.revision)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGEN }}
+          tags: |
+            type=sha,prefix=sha-
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=ref,event=tag
+
+      - name: Build (linux/amd64)
+        uses: docker/build-push-action@v6
+        with:
+          context: servicio-ia
+          load: true
+          push: false
+          tags: |
+            servicio-ia:ci
+            ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: REVISION=${{ github.sha }}
+
+      - name: Prueba de humo del contenedor (health + predict + tamaño)
+        run: |
+          docker run -d --name ia -p 8000:8000 servicio-ia:ci
+          for i in $(seq 1 30); do
+            curl -sf localhost:8000/health && break
+            sleep 2
+          done
+          curl -sf localhost:8000/health
+          curl -sf -X POST localhost:8000/predict -H "Content-Type: application/json" \
+            -d '{"antiguedad_anios":11,"horas_desde_mantencion":620,"carga_promedio_ton":395,"temp_motor_c":99.5,"presion_aceite_psi":41,"vibracion_mm_s":null,"rpm_promedio":1980,"alertas_24h":3,"flota":"C","turno":"noche"}'
+          echo
+          docker image ls servicio-ia:ci
+          BYTES=$(docker image inspect servicio-ia:ci --format '{{.Size}}')
+          echo "Tamaño de la imagen: $((BYTES / 1024 / 1024)) MB"
+          if [ "$BYTES" -gt 1073741824 ]; then echo "✘ La imagen supera 1 GB"; exit 1; fi
+          docker image inspect servicio-ia:ci --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}'
+
+      - name: Guardar modelo y datos en el repositorio (solo push a main)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f servicio-ia/model/modelo.onnx servicio-ia/model/preprocesador.joblib servicio-ia/model/metadata.json \
+                     datos/camiones_crudo.csv datos/camiones_tratado.csv datos/reporte_limpieza.json
+          if git diff --cached --quiet; then
+            echo "Sin cambios en el modelo ni en los datos"
+          else
+            git commit -m "Modelo y datos generados por el pipeline (${GITHUB_SHA::7}) [skip ci]"
+            git push
+          fi
+
+      - name: Login a GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publicar en GHCR
+        if: github.event_name != 'pull_request'
+        run: |
+          for tag in $(echo "${{ steps.meta.outputs.tags }}"); do
+            docker push "$tag"
+          done

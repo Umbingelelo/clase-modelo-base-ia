@@ -1,0 +1,64 @@
+{
+  "antes": {
+    "filas": 6072,
+    "columnas": 14,
+    "duplicados_exactos": 72,
+    "nulos": {
+      "temp_motor_c": 104,
+      "presion_aceite_psi": 124,
+      "vibracion_mm_s": 70,
+      "falla_7d": 23
+    },
+    "categorias": {
+      "flota": [
+        "A",
+        "B",
+        "C",
+        "a ",
+        "b ",
+        "c "
+      ],
+      "turno": [
+        " noche",
+        "DIA",
+        "Dia",
+        "NOCHE",
+        "Noche",
+        "dia",
+        "dia ",
+        "día",
+        "noche"
+      ]
+    }
+  },
+  "reglas": {
+    "R1_duplicados_descartados": 72,
+    "R3_temp_motor_c_fuera_de_rango": 24,
+    "R3_presion_aceite_psi_fuera_de_rango": 15,
+    "R3_carga_promedio_ton_fuera_de_rango": 14,
+    "R3_vibracion_mm_s_fuera_de_rango": 0,
+    "R4_sin_etiqueta_descartadas": 23
+  },
+  "despues": {
+    "filas": 5977,
+    "columnas": 14,
+    "duplicados_exactos": 0,
+    "nulos": {
+      "carga_promedio_ton": 14,
+      "temp_motor_c": 126,
+      "presion_aceite_psi": 138,
+      "vibracion_mm_s": 69
+    },
+    "categorias": {
+      "flota": [
+        "A",
+        "B",
+        "C"
+      ],
+      "turno": [
+        "dia",
+        "noche"
+      ]
+    }
+  }
+}

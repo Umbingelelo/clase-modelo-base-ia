@@ -1,0 +1,23 @@
+# Python / entornos
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Datos generados: los crea datos/generar_datos.py y datos/preparar.py
+datos/*.csv
+datos/reporte_limpieza.json
+
+# Artefactos del modelo: los crea el notebook o servicio-ia/entrenar.py (el pipeline los regenera).
+# No se versionan a mano: "un .pkl subido sin el script que lo produce no cumple" (EP2).
+servicio-ia/model/*
+!servicio-ia/model/.gitkeep
+modelo.zip
+
+# Material del docente
+docente/
+
+# Archivos para borrar a mano
+_to_delete/

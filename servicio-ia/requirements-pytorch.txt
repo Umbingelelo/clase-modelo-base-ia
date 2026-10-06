@@ -1,0 +1,9 @@
+# ENTRENAMIENTO con PyTorch (tu computador o el job de CI). No va en la imagen.
+#
+# En Linux / GitHub Actions instala la version SOLO CPU (sin ~4 GB de CUDA):
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+#   pip install -r requirements-pytorch.txt
+# En Windows y macOS, "pip install torch" ya es solo CPU.
+-r requirements-dev.txt
+torch
+onnx==1.23.1

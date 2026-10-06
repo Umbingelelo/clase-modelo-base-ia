@@ -1,0 +1,582 @@
+{
+  "info": {
+    "_postman_id": "d81da04e-ef1f-4845-8463-65b1d82acb83",
+    "name": "Servicio IA · Falla CAEX 7d (ITY1102)",
+    "description": "Pruebas del microservicio de IA de la clase 'Del notebook al microservicio'. Cambia la variable baseUrl si el servicio corre en otro puerto (EP2: detrás del gateway en http://localhost:8080/api/ia).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1 · Operación",
+      "item": [
+        {
+          "name": "GET /health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "description": "Lo que consultan Docker (HEALTHCHECK), el gateway y el balanceador. 200 = la réplica recibe tráfico; 503 = la sacan."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json();",
+                  "pm.test(\"modelo cargado\", () => pm.expect(r.modelo_cargado).to.be.true);",
+                  "pm.collectionVariables.set(\"version_modelo\", r.version_modelo);",
+                  "console.log(\"Version del modelo:\", r.version_modelo, \"| revision:\", r.revision);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /modelo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/modelo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "modelo"
+              ]
+            },
+            "description": "Metadata del modelo servido: versión, algoritmo, umbral, métricas y cifras de limpieza."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json();",
+                  "pm.test(\"tiene umbral y metricas\", () => { pm.expect(r).to.have.property(\"umbral\"); pm.expect(r).to.have.property(\"metricas_prueba\"); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2 · Predicción",
+      "item": [
+        {
+          "name": "POST /predict · camión en riesgo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/predict",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "predict"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"antiguedad_anios\": 11,\n  \"horas_desde_mantencion\": 620,\n  \"carga_promedio_ton\": 395,\n  \"temp_motor_c\": 99.5,\n  \"presion_aceite_psi\": 41.0,\n  \"vibracion_mm_s\": 7.8,\n  \"rpm_promedio\": 1980,\n  \"alertas_24h\": 3,\n  \"flota\": \"C\",\n  \"turno\": \"noche\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json();",
+                  "pm.test(\"probabilidad entre 0 y 1\", () => pm.expect(r.probabilidad_falla).to.be.within(0, 1));",
+                  "pm.test(\"incluye version del modelo (requisito EP2)\", () => pm.expect(r.version_modelo).to.be.a(\"string\").and.not.empty);",
+                  "pm.test(\"misma version que reporta /health\", () => {",
+                  "    const v = pm.collectionVariables.get(\"version_modelo\");",
+                  "    if (v) pm.expect(r.version_modelo).to.eql(v);",
+                  "});",
+                  "pm.test(\"responde en menos de 300 ms\", () => pm.expect(pm.response.responseTime).to.be.below(300));",
+                  "",
+                  "pm.test(\"debe alertar\", () => pm.expect(r.alerta).to.be.true);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /predict · camión sano",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/predict",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "predict"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"antiguedad_anios\": 2,\n  \"horas_desde_mantencion\": 40,\n  \"carga_promedio_ton\": 280,\n  \"temp_motor_c\": 84.0,\n  \"presion_aceite_psi\": 58.0,\n  \"vibracion_mm_s\": 3.5,\n  \"rpm_promedio\": 1650,\n  \"alertas_24h\": 0,\n  \"flota\": \"A\",\n  \"turno\": \"dia\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json();",
+                  "pm.test(\"probabilidad entre 0 y 1\", () => pm.expect(r.probabilidad_falla).to.be.within(0, 1));",
+                  "pm.test(\"incluye version del modelo (requisito EP2)\", () => pm.expect(r.version_modelo).to.be.a(\"string\").and.not.empty);",
+                  "pm.test(\"misma version que reporta /health\", () => {",
+                  "    const v = pm.collectionVariables.get(\"version_modelo\");",
+                  "    if (v) pm.expect(r.version_modelo).to.eql(v);",
+                  "});",
+                  "pm.test(\"responde en menos de 300 ms\", () => pm.expect(pm.response.responseTime).to.be.below(300));",
+                  "",
+                  "pm.test(\"no debe alertar\", () => pm.expect(r.alerta).to.be.false);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /predict · sensores nulos y categorías sucias",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/predict",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "predict"
+              ]
+            },
+            "description": "Sensores en null los imputa el Pipeline. 'NOCHE' y ' c' los normaliza el contrato (misma regla R2 de la limpieza).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"antiguedad_anios\": 11,\n  \"horas_desde_mantencion\": 620,\n  \"carga_promedio_ton\": 395,\n  \"temp_motor_c\": null,\n  \"presion_aceite_psi\": 41.0,\n  \"vibracion_mm_s\": null,\n  \"rpm_promedio\": 1980,\n  \"alertas_24h\": 3,\n  \"flota\": \" c\",\n  \"turno\": \"NOCHE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json();",
+                  "pm.test(\"probabilidad entre 0 y 1\", () => pm.expect(r.probabilidad_falla).to.be.within(0, 1));",
+                  "pm.test(\"incluye version del modelo (requisito EP2)\", () => pm.expect(r.version_modelo).to.be.a(\"string\").and.not.empty);",
+                  "pm.test(\"misma version que reporta /health\", () => {",
+                  "    const v = pm.collectionVariables.get(\"version_modelo\");",
+                  "    if (v) pm.expect(r.version_modelo).to.eql(v);",
+                  "});",
+                  "pm.test(\"responde en menos de 300 ms\", () => pm.expect(pm.response.responseTime).to.be.below(300));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /predict/lote",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/predict/lote",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "predict",
+                "lote"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"lecturas\": [\n    {\n      \"antiguedad_anios\": 11,\n      \"horas_desde_mantencion\": 620,\n      \"carga_promedio_ton\": 395,\n      \"temp_motor_c\": 99.5,\n      \"presion_aceite_psi\": 41.0,\n      \"vibracion_mm_s\": 7.8,\n      \"rpm_promedio\": 1980,\n      \"alertas_24h\": 3,\n      \"flota\": \"C\",\n      \"turno\": \"noche\"\n    },\n    {\n      \"antiguedad_anios\": 2,\n      \"horas_desde_mantencion\": 40,\n      \"carga_promedio_ton\": 280,\n      \"temp_motor_c\": 84.0,\n      \"presion_aceite_psi\": 58.0,\n      \"vibracion_mm_s\": 3.5,\n      \"rpm_promedio\": 1650,\n      \"alertas_24h\": 0,\n      \"flota\": \"A\",\n      \"turno\": \"dia\"\n    },\n    {\n      \"antiguedad_anios\": 11,\n      \"horas_desde_mantencion\": 620,\n      \"carga_promedio_ton\": 395,\n      \"temp_motor_c\": null,\n      \"presion_aceite_psi\": 41.0,\n      \"vibracion_mm_s\": null,\n      \"rpm_promedio\": 1980,\n      \"alertas_24h\": 3,\n      \"flota\": \" c\",\n      \"turno\": \"NOCHE\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json();",
+                  "pm.test(\"3 predicciones\", () => pm.expect(r.total).to.eql(3));",
+                  "pm.test(\"al menos una alerta\", () => pm.expect(r.alertas).to.be.at.least(1));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3 · Contrato (errores esperados)",
+      "item": [
+        {
+          "name": "422 · flota inexistente",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/predict",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "predict"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"antiguedad_anios\": 2,\n  \"horas_desde_mantencion\": 40,\n  \"carga_promedio_ton\": 280,\n  \"temp_motor_c\": 84.0,\n  \"presion_aceite_psi\": 58.0,\n  \"vibracion_mm_s\": 3.5,\n  \"rpm_promedio\": 1650,\n  \"alertas_24h\": 0,\n  \"flota\": \"Z\",\n  \"turno\": \"dia\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"422: el contrato rechaza la entrada\", () => pm.response.to.have.status(422));",
+                  "pm.test(\"explica que campo fallo\", () => pm.expect(pm.response.json().detail).to.be.an(\"array\").that.is.not.empty);",
+                  "console.log(JSON.stringify(pm.response.json().detail, null, 2));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "422 · sensor con código de error -999",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/predict",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "predict"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"antiguedad_anios\": 2,\n  \"horas_desde_mantencion\": 40,\n  \"carga_promedio_ton\": 280,\n  \"temp_motor_c\": -999,\n  \"presion_aceite_psi\": 58.0,\n  \"vibracion_mm_s\": 3.5,\n  \"rpm_promedio\": 1650,\n  \"alertas_24h\": 0,\n  \"flota\": \"A\",\n  \"turno\": \"dia\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"422: el contrato rechaza la entrada\", () => pm.response.to.have.status(422));",
+                  "pm.test(\"explica que campo fallo\", () => pm.expect(pm.response.json().detail).to.be.an(\"array\").that.is.not.empty);",
+                  "console.log(JSON.stringify(pm.response.json().detail, null, 2));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "422 · falta un campo obligatorio",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/predict",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "predict"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"antiguedad_anios\": 2,\n  \"horas_desde_mantencion\": 40,\n  \"carga_promedio_ton\": 280,\n  \"temp_motor_c\": 84.0,\n  \"presion_aceite_psi\": 58.0,\n  \"vibracion_mm_s\": 3.5,\n  \"alertas_24h\": 0,\n  \"flota\": \"A\",\n  \"turno\": \"dia\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"422: el contrato rechaza la entrada\", () => pm.response.to.have.status(422));",
+                  "pm.test(\"explica que campo fallo\", () => pm.expect(pm.response.json().detail).to.be.an(\"array\").that.is.not.empty);",
+                  "console.log(JSON.stringify(pm.response.json().detail, null, 2));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "422 · campo que no existe en el contrato",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/predict",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "predict"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"antiguedad_anios\": 2,\n  \"horas_desde_mantencion\": 40,\n  \"carga_promedio_ton\": 280,\n  \"temp_motor_c\": 84.0,\n  \"presion_aceite_psi\": 58.0,\n  \"vibracion_mm_s\": 3.5,\n  \"rpm_promedio\": 1650,\n  \"alertas_24h\": 0,\n  \"flota\": \"A\",\n  \"turno\": \"dia\",\n  \"id_camion\": \"CAEX-007\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"422: el contrato rechaza la entrada\", () => pm.response.to.have.status(422));",
+                  "pm.test(\"explica que campo fallo\", () => pm.expect(pm.response.json().detail).to.be.an(\"array\").that.is.not.empty);",
+                  "console.log(JSON.stringify(pm.response.json().detail, null, 2));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "422 · JSON mal formado",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/predict",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "predict"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"flota\": \"A\", ",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"422: el contrato rechaza la entrada\", () => pm.response.to.have.status(422));",
+                  "pm.test(\"explica que campo fallo\", () => pm.expect(pm.response.json().detail).to.be.an(\"array\").that.is.not.empty);",
+                  "console.log(JSON.stringify(pm.response.json().detail, null, 2));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4 · Carga (usar con Runner + docker stats)",
+      "description": "Ejecutar con Collection Runner: 300 a 1000 iteraciones, delay 0 ms. En otra terminal: docker stats servicio-ia. De ahí sale el número del mem_limit (IE2) y la latencia (IE8).",
+      "item": [
+        {
+          "name": "POST /predict · lectura aleatoria",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/predict",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "predict"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{{lectura_aleatoria}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const r = (a, b, d = 1) => Math.round((a + Math.random() * (b - a)) * d) / d;",
+                  "const lectura = {",
+                  "  antiguedad_anios: r(1, 14), horas_desde_mantencion: r(0, 900),",
+                  "  carga_promedio_ton: r(260, 400, 10), temp_motor_c: r(78, 104, 10),",
+                  "  presion_aceite_psi: r(38, 66, 10), vibracion_mm_s: r(2, 9, 100),",
+                  "  rpm_promedio: r(1300, 2000), alertas_24h: r(0, 4),",
+                  "  flota: [\"A\", \"B\", \"C\"][r(0, 2)], turno: Math.random() < 0.5 ? \"dia\" : \"noche\"",
+                  "};",
+                  "pm.variables.set(\"lectura_aleatoria\", JSON.stringify(lectura));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000"
+    },
+    {
+      "key": "version_modelo",
+      "value": ""
+    }
+  ]
+}

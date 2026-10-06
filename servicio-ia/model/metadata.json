@@ -1,0 +1,39 @@
+{
+  "nombre": "falla-caex-7d",
+  "version": "1.0.0-pytorch",
+  "formato": "onnx",
+  "framework": "torch 2.14.1+cu130",
+  "descripcion": "MLP [64, 32] dropout=0.2 epocas=60 lr=0.001",
+  "entrenado_en": "2026-10-06T04:45:32+00:00",
+  "sklearn_version": "1.9.1",
+  "variables_numericas": [
+    "antiguedad_anios",
+    "horas_desde_mantencion",
+    "carga_promedio_ton",
+    "temp_motor_c",
+    "presion_aceite_psi",
+    "vibracion_mm_s",
+    "rpm_promedio",
+    "alertas_24h"
+  ],
+  "variables_categoricas": [
+    "flota",
+    "turno"
+  ],
+  "umbral": 0.5,
+  "filas_entrenamiento": 3585,
+  "metricas_prueba": {
+    "roc_auc": 0.9398,
+    "pr_auc": 0.7739,
+    "recall": 0.8048,
+    "costo_usd": 1615000
+  },
+  "limpieza": {
+    "R1_duplicados_descartados": 72,
+    "R3_temp_motor_c_fuera_de_rango": 24,
+    "R3_presion_aceite_psi_fuera_de_rango": 15,
+    "R3_carga_promedio_ton_fuera_de_rango": 14,
+    "R3_vibracion_mm_s_fuera_de_rango": 0,
+    "R4_sin_etiqueta_descartadas": 23
+  }
+}

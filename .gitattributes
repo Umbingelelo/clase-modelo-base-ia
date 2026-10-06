@@ -1,0 +1,6 @@
+* text=auto eol=lf
+*.ps1 text eol=crlf
+*.onnx binary
+*.joblib binary
+*.png binary
+*.zip binary

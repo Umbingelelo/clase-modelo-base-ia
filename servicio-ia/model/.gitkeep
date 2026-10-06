@@ -1,0 +1,1 @@
+Aquí quedan preprocesador.joblib, modelo.onnx y metadata.json (los genera el notebook, entrenar.py o el pipeline).

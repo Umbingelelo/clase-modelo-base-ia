@@ -1,0 +1,11 @@
+# Entorno del NOTEBOOK en tu computador (en Colab casi todo ya viene instalado).
+# Mismas versiones que la imagen para scikit-learn y onnxruntime.
+-r servicio-ia/requirements-dev.txt
+matplotlib==3.11.2
+jupyterlab
+ipykernel
+onnx==1.23.1
+# Elige tu framework (o ambos):
+torch            # en Linux: pip install torch --index-url https://download.pytorch.org/whl/cpu
+# tensorflow-cpu==2.21.0
+# tf2onnx==1.17.0
